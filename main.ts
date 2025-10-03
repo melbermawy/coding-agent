@@ -35,6 +35,48 @@ const tools =  {
                 })}
 
 
+const list_files = {
+    list_file: tool({
+        description: "List files in a directory (non-recursive, project root only)",
+        inputSchema: z.object({
+            dir: z.string().optional(),
+            extensions: z.array(z.string()).optional(),
+            maxFiles: z.number().int().positive().max(500).optional(),
+        }),
+        async execute(args) {
+            const baseDir = path.resolve(process.cwd());
+            const dir = args.dir ? path.resolve(baseDir, args.dir) : baseDir;
+
+            if (!dir.startsWith(baseDir)) {
+                throw new Error("Access outside project root is not allowed");
+            }
+
+            let entries = await fs.readdir(dir, { withFileTypes: true });
+
+            // Filter to files only
+            let files = entries.filter(e => e.isFile()).map(e => e.name);
+
+            // Filter by extensions if provided
+            if (args.extensions && args.extensions.length > 0) {
+                const exts = args.extensions.map((ext: string) => ext.toLowerCase());
+                files = files.filter(f => exts.includes(path.extname(f).toLowerCase()));
+            }
+
+            // Limit max files if provided
+            if (args.maxFiles && args.maxFiles > 0) {
+                files = files.slice(0, args.maxFiles);
+            }
+
+            // Return array of file objects with name and path relative to baseDir
+            return files.map(file => ({
+                name: file,
+                path: path.relative(baseDir, path.resolve(dir, file))
+            }));
+        }
+    })
+}
+
+
 const messages: ModelMessage[] = []
 
 
