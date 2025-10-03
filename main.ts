@@ -18,6 +18,21 @@ const terminal = readline.createInterface({
     output: process.stdout
 })
 
+const tools =  {
+                read_file: tool({
+                    description: "Read a text file",
+                    inputSchema: z.object({ path: z.string() }),
+                    execute: async (args: any) => {
+                        console.log("execute got:", args);
+                        if (!args || !args.path) {
+                             throw new Error("No path provided");
+                            }
+                         return await fs.readFile(args.path, "utf-8");
+                        }
+                    // execute: async ({ path }: { path: string }) => {
+                    //     return { text: await fs.readFile(path, "utf-8") }
+                    // }
+                })}
 
 
 const messages: ModelMessage[] = []
@@ -32,20 +47,49 @@ async function main() {
         const first = await generateText({
             model: openai("gpt-4o"),
             messages,
-            tools: {
-                read_file: tool({
-                    description: "Read a text file",
-                    inputSchema: z.object({ path: z.string() }),
-                    execute: async ({ path }: { path: string }) => {
-                        return { text: await fs.readFile(path, "utf-8") }
-                    }
+            tools: tools,
+            toolChoice: "auto"
                 })
-            }
-        }
-        )
-            console.log(first.text ?? "");
-            messages.push({ role: "assistant", content: first.text ?? "" });
+                const toolCalls = (first as any).toolCalls ?? []
+            if (toolCalls.length) {
+
+                  messages.push({
+                      role: "assistant",
+                      content: toolCalls.map((c: any) => ({
+                      type: "tool-call",
+                      toolCallId: c.toolCallId,
+                      toolName: c.toolName,
+                      input: c.input, // what the model asked for
+                       })),
+                    } as ModelMessage)
+
+
+                for (const c of (first as any).toolCalls) {
+                      const exec = tools.read_file.execute;
+                        if (!exec) throw new Error("read_file tool missing execute")
+
+                    const result = await exec(c.input, { toolCallId: c.toolCallId } as any)
+                    const resultStr = typeof result === "string" ? result : JSON.stringify(result)
+
+                    messages.push({ role: "tool",
+                        content: [{
+                            type: "tool-result",
+                            toolCallId: c.toolCallId,
+                            toolName: c.toolName,
+                            output: { type: "text", value: result }
+                        }] } as ModelMessage)
+                }
+
+                const second = await generateText({ model: openai("gpt-4o"), messages })
+                console.log(second.text ?? "");
+                messages.push({
+                    role: "assistant",
+                    content: second.text ?? ""
+                })
+            } else {
+                console.log(first.text ?? "");
+                messages.push({ role: "assistant", content: first.text ?? ""})
             }
 }
- 
+}
 main().catch(console.error)
