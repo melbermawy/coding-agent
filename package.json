@@ -12,9 +12,10 @@
     "typescript": "^5.9.3"
   },
   "dependencies": {
-    "@ai-sdk/openai": "^2.1.0-beta.11",
-    "ai": "^5.1.0-beta.19",
+    "@ai-sdk/openai": "^2.0.42",
+    "ai": "^5.0.60",
     "dotenv": "^17.2.3",
+    "openai": "^6.1.0",
     "zod": "^4.1.11"
   }
 }
