@@ -53,21 +53,17 @@ const list_files = {
 
             let entries = await fs.readdir(dir, { withFileTypes: true });
 
-            // Filter to files only
             let files = entries.filter(e => e.isFile()).map(e => e.name);
 
-            // Filter by extensions if provided
             if (args.extensions && args.extensions.length > 0) {
                 const exts = args.extensions.map((ext: string) => ext.toLowerCase());
                 files = files.filter(f => exts.includes(path.extname(f).toLowerCase()));
             }
 
-            // Limit max files if provided
             if (args.maxFiles && args.maxFiles > 0) {
                 files = files.slice(0, args.maxFiles);
             }
 
-            // Return array of file objects with name and path relative to baseDir
             return files.map(file => ({
                 name: file,
                 path: path.relative(baseDir, path.resolve(dir, file))
