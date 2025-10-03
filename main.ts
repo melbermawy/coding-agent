@@ -1,7 +1,8 @@
 console.log("Hi")
 
 import { openai } from '@ai-sdk/openai';
-
+import { generateText } from "ai"
+import { z } from 'zod';
 import { streamText } from 'ai';
 import type { ModelMessage } from 'ai';
 import 'dotenv/config';
@@ -25,16 +26,16 @@ async function main() {
             messages,
         })
 
-        let fullRespone = ""
+        let fullResponse = ""
         process.stdout.write("\nAssistant: ")
         for await (const delta of result.textStream) {
-            fullRespone += delta
+            fullResponse += delta
             process.stdout.write(delta)
         }
         process.stdout.write("\n\n")
 
-        messages.push({ role: "assistant", content: fullRespone})
+        messages.push({ role: "assistant", content: fullResponse})
     }
 }
-
+ 
 main().catch(console.error)
